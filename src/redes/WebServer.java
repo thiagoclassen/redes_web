@@ -13,11 +13,12 @@ public final class WebServer
 		//String host = InetAddress.getByName(null);
 		
 		// Establish the skt
+		ServerSocket server = new ServerSocket(port);
 		Socket socket;
 		
 		while(true){
 			// Listen for a TCP req
-			socket = new ServerSocket(port).accept();
+			socket = server.accept();
 			HttpRequest request = new HttpRequest(socket);
 			
 			Thread thread = new Thread(request);
@@ -49,7 +50,7 @@ final class HttpRequest implements Runnable
 	
 	private void procesRequest() throws Exception
 	{
-		InputStream is = this.socket. getInputStream();
+		InputStream is = this.socket.getInputStream();
 		
 		DataOutputStream os = new DataOutputStream(socket.getOutputStream());
 		
@@ -70,13 +71,14 @@ final class HttpRequest implements Runnable
 		tokens.nextToken(); // skip over the method, which should be "GET"
 		String fileName = tokens.nextToken();
 		// Prepend a "." so that file request is within the current directory.
-		fileName = "." + fileName;
+		fileName = fileName;
+		String path = "/home/thiago/Projetos/Java/redes/src/redes";
 		
 		// Open the requested file.
 		FileInputStream fis = null;
 		boolean fileExists = true;
 		try {
-		fis = new FileInputStream(fileName);
+		fis = new FileInputStream(path + fileName);
 		} catch (FileNotFoundException e) {
 		fileExists = false;
 		}
@@ -86,15 +88,18 @@ final class HttpRequest implements Runnable
 		String contentTypeLine = null;
 		String entityBody = null;
 		if (fileExists) {
-		statusLine = "200";
+		statusLine = "HTTP/1.1 200 OK" + CRLF;
 		contentTypeLine = "Content-type: " +
 		contentType( fileName ) + CRLF;
 		} else {
-		statusLine = "404";
-		contentTypeLine = "Not Found";
-		entityBody = "<HTML>" +
+		fileName = path + "/error.html";
+		fis = new FileInputStream(fileName);
+		statusLine = "HTTP/1.1 404 Not Found" + CRLF;;
+		contentTypeLine = "Content-type: " +
+				contentType( fileName ) + CRLF;
+		/*entityBody = "<HTML>" +
 		"<HEAD><TITLE>Not Found</TITLE></HEAD>" +
-		"<BODY>Not Found</BODY></HTML>";
+		"<BODY>Not Found</BODY></HTML>";*/
 		}
 		
 		// Send the status line.
@@ -105,12 +110,8 @@ final class HttpRequest implements Runnable
 		os.writeBytes(CRLF);
 		
 		// Send the entity body.
-		if (fileExists) {
 		sendBytes(fis, os);
 		fis.close();
-		} else {
-		//os.writeBytes();
-		}
 		
 		os.close();
 		br.close();
